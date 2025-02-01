@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "declaration": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "strictPropertyInitialization": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["./src/**/*", "src/global.d.ts"],
+  "exclude": ["./dist", "./src/actions/**"]
+}

@@ -1,0 +1,148 @@
+#!/usr/bin/env node
+
+import fs from "fs";
+import path from "path";
+import readline from "readline";
+import { promisify } from "util";
+
+// Define possible hints/values for different env vars
+const ENV_HINTS = {
+  PORT: "Enter the port number your API should run on, should be separate from the frontend port, usually 3001 or 8081",
+  NODE_ENV:
+    "Enter the environment your API should run on, usually 'development' or 'production'",
+  TELEGRAM_BOT_TOKEN:
+    "Enter your Telegram bot token, you can get it from BotFather, go to https://t.me/botfather to set it up",
+  OPENAI_API_KEY:
+    "Enter your OpenAI API key, you can get it from OpenAI, go to https://platform.openai.com/api-keys to create one",
+  NGROK_AUTH_TOKEN:
+    "Enter your ngrok auth token, you can get it from ngrok, go to https://dashboard.ngrok.com/get-started/setup to create one",
+  NGROK_DOMAIN:
+    "Enter your ngrok domain, you can get it for free from ngrok, go to https://dashboard.ngrok.com/domains to create one",
+  COLLABLAND_API_KEY:
+    "Enter your Collabland API key, you can get it from Collab.Land Dev Portal, go to https://dev-portal-qa.collab.land/signin to create one",
+  GAIANET_MODEL:
+    "Enter your Gaianet model, you can get it from Gaianet.AI, go to https://docs.gaianet.ai/user-guide/nodes to get the model details\n(Press Enter/Return to inject the default model)",
+  GAIANET_SERVER_URL:
+    "Enter your Gaianet server URL, you can get it from Gaianet.AI, go to https://docs.gaianet.ai/user-guide/nodes to get the server details\n(Press Enter/Return to inject the default server URL)",
+  GAIANET_EMBEDDING_MODEL:
+    "Enter your Gaianet embedding model, you can get it from Gaianet.AI, go to https://docs.gaianet.ai/user-guide/nodes to get the embedding model details\n(Press Enter/Return to inject the default embedding model)",
+  USE_GAIANET_EMBEDDING:
+    "Enter if you want to use Gaianet embedding, usually TRUE or FALSE\n(Press Enter/Return to inject the default value)",
+  JOKERACE_CONTRACT_ADDRESS:
+    "Enter your Jokerace contract address, you can get it from Jokerace, go to https://www.jokerace.io/contest/new to get the contract address",
+  ELIZA_CHARACTER_PATH:
+    "Enter your Eliza character path, if you are using a custom character.\n(Press Enter/Return to inject the default character path)",
+  TOKEN_DETAILS_PATH:
+    "Enter your WOW.XYZ ERC20 token details JSON path, if you are using a custom token details.\n(Press Enter/Return to inject the default token details path)",
+  TWITTER_CLIENT_ID:
+    "Enter your Twitter client ID, you can get it from Twitter Developer Portal, go to https://developer.twitter.com/en/portal/dashboard to create one",
+  TWITTER_CLIENT_SECRET:
+    "Enter your Twitter client secret, you can get it from Twitter Developer Portal, go to https://developer.twitter.com/en/portal/dashboard to create one",
+  DISCORD_CLIENT_ID:
+    "Enter your Discord client ID, you can get it from Discord Developer Portal, go to https://discord.com/developers/applications to create one",
+  DISCORD_CLIENT_SECRET:
+    "Enter your Discord client secret, you can get it from Discord Developer Portal, go to https://discord.com/developers/applications to create one",
+  GITHUB_CLIENT_ID:
+    "Enter your GitHub client ID, you can get it from GitHub Developer Settings, go to https://github.com/settings/developers to create one",
+  GITHUB_CLIENT_SECRET:
+    "Enter your GitHub client secret, you can get it from GitHub Developer Settings, go to https://github.com/settings/developers to create one",
+  TWITTER_USERNAME:
+    "Enter your Twitter username, you can get it from Twitter Developer Portal, go to https://developer.twitter.com/en/portal/dashboard to create one",
+  TWITTER_PASSWORD:
+    "Enter your Twitter password, you can get it from Twitter Developer Portal, go to https://developer.twitter.com/en/portal/dashboard to create one",
+  TWITTER_API_KEY:
+    "Enter your Twitter API key, you can get it from Twitter Developer Portal, go to https://developer.twitter.com/en/portal/dashboard to create one",
+  TWITTER_API_SECRET_KEY:
+    "Enter your Twitter API secret key, you can get it from Twitter Developer Portal, go to https://developer.twitter.com/en/portal/dashboard to create one",
+  TWITTER_ACCESS_TOKEN:
+    "Enter your Twitter access token, you can get it from Twitter Developer Portal, go to https://developer.twitter.com/en/portal/dashboard to create one",
+  TWITTER_ACCESS_TOKEN_SECRET:
+    "Enter your Twitter access token secret, you can get it from Twitter Developer Portal, go to https://developer.twitter.com/en/portal/dashboard to create one",
+  // Add more hints as needed from .env.example
+  ORBIS_CONTEXT_ID:
+    "[Press enter/return to skip] (optional - gated data) Visit the Orbis Studio (https://studio.useorbis.com/) and log in with your browser wallet. Once logged in, set up a new context under the `Contexts` tab and use the value here",
+  ORBIS_ENV:
+    "[Press enter/return to skip] (optional - gated data) On the right-hand side of Orbis Studio contexts, you should see a variable called 'Environment ID' (a DID representation of the address you used to sign in). Use that value here",
+  ORBIS_TABLE_ID:
+    "[Press enter/return to skip] (optional - gated data) Orbis embeddings table ID e.g. 'kjzl6hvfrbw6ca77573ixbqbfvz8062vg2rw7rwude5baqeob9koy4jhvsmois7'. Replace it with your own table ID with `pnpm run deploy-model`",
+  ORBIS_SEED:
+    "[Press enter/return to skip] (optional - gated data) For example, [2, 20, ..., 241]. Replace it with your own seed with `pnpm run gen-seed`",
+  ORBIS_GATEWAY_URL:
+    "[Press enter/return to skip] (optional - gated data) Your local Orbis server URL e.g. http://localhost:7008 or the hosted instance at https://studio.useorbis.com",
+  CERAMIC_NODE_URL:
+    "[Press enter/return to skip] (optional - gated data) https://ceramic-orbisdb-mainnet-direct.hirenodes.io/",
+  USE_OPENAI_EMBEDDING:
+    "[Press enter/return to skip] (optional - gated data) must be TRUE to use gated data functionality",
+};
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+const question = promisify(rl.question).bind(rl);
+
+async function main() {
+  const envExamplePath = path.join(__dirname, "..", "..", ".env.example");
+  const envPath = path.join(__dirname, "..", "..", ".env");
+
+  // Read .env.example
+  const exampleContent = fs.readFileSync(envExamplePath, "utf8");
+  const envContent = fs.existsSync(envPath)
+    ? fs.readFileSync(envPath, "utf8")
+    : "";
+
+  // Parse variables
+  const exampleVars = exampleContent
+    .split("\n")
+    .filter((line) => line && !line.startsWith("#"))
+    .map((line) => line.split("=")[0]);
+
+  const existingVars = new Set(
+    envContent
+      .split("\n")
+      .filter((line) => line && !line.startsWith("#"))
+      .map((line) => line.split("=")[0])
+  );
+
+  // Collect missing variables
+  let newEnvContent = envContent;
+
+  for (const varName of exampleVars) {
+    if (!existingVars.has(varName)) {
+      const hint = ENV_HINTS[varName] ?? "No hint available";
+      console.log(`HINT: ${hint}`);
+      const value = await question(`[server] Enter value for ${varName}: `);
+      newEnvContent += `\n${varName}=${value ?? ""}`;
+    }
+  }
+  // Default config, add more configs here, they should be adjusted by default
+  const defaultConfig = {
+    GAIANET_MODEL: "llama",
+    GAIANET_SERVER_URL: "https://llama8b.gaia.domains/v1",
+    GAIANET_EMBEDDING_MODEL: "nomic-embed",
+    USE_GAIANET_EMBEDDING: "TRUE",
+    ELIZA_CHARACTER_PATH: "character.json",
+    TOKEN_DETAILS_PATH: "token_metadata.example.jsonc",
+    ORBIS_GATEWAY_URL: "https://studio.useorbis.com",
+    CERAMIC_NODE_URL: "https://ceramic-orbisdb-mainnet-direct.hirenodes.io/",
+    USE_OPENAI_EMBEDDING: "TRUE",
+  };
+
+  // Inject defaults for empty vars
+  const lines = newEnvContent.split("\n");
+  const updatedLines = lines.map((line) => {
+    const [key, value] = line.split("=");
+    if (key && defaultConfig[key] && (!value || value === "")) {
+      return `${key}=${defaultConfig[key]}`;
+    }
+    return line;
+  });
+  newEnvContent = updatedLines.join("\n");
+
+  // Save to .env
+  fs.writeFileSync(envPath, newEnvContent.trim() + "\n");
+  rl.close();
+}
+
+main().catch(console.error);

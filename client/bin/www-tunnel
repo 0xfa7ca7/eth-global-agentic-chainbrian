@@ -1,0 +1,68 @@
+#! /usr/bin/env node
+
+// ! This script is now deprecated, the tunneling happens in the root script
+import { config } from "dotenv";
+import { join } from "path";
+import { tunnelmole } from "tunnelmole";
+import fs from "fs/promises";
+
+const __dirname = new URL(".", import.meta.url).pathname;
+const ENV_PATH = join(__dirname, "..", ".env");
+const ROOT_ENV_PATH = join(__dirname, "..", "..", ".env");
+
+config({
+  path: ENV_PATH,
+});
+
+const updateEnvFile = async (tunnelUrl, envPath = ENV_PATH) => {
+  try {
+    console.log(
+      `[INFO] Updating tunnelmole URL in .env (Location: ${envPath})...`
+    );
+    const envContent = await fs.readFile(envPath, "utf-8");
+    const hasHostname = envContent.includes("NEXT_PUBLIC_HOSTNAME=");
+
+    if (hasHostname) {
+      const newContent = envContent.replace(
+        /NEXT_PUBLIC_HOSTNAME=.*/,
+        `NEXT_PUBLIC_HOSTNAME=${tunnelUrl}`
+      );
+      await fs.writeFile(envPath, newContent);
+    } else {
+      await fs.appendFile(envPath, `\nNEXT_PUBLIC_HOSTNAME=${tunnelUrl}`);
+    }
+    console.log(
+      `[INFO] Updated NEXT_PUBLIC_HOSTNAME in .env (Location: ${envPath}) to ${tunnelUrl}`
+    );
+  } catch (err) {
+    console.error("[ERROR] Failed to update .env file:", err);
+  }
+};
+
+const main = async () => {
+  const port = process.env.TUNNEL_PORT || 3000;
+  console.log(`Waiting 5 seconds for Next.js app to start...`);
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+  console.log(`Starting front-end tunnel on PORT ${port}...`);
+
+  const url = await tunnelmole({
+    port: Number(port),
+    domain: process.env.TUNNEL_DOMAIN,
+  });
+  console.log(`[INFO] Visit ${url} to view your Next.js app`);
+
+  await updateEnvFile(url);
+  await updateEnvFile(url, ROOT_ENV_PATH);
+
+  process.on("SIGINT", () => {
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    process.exit(0);
+  });
+};
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(0);
+});

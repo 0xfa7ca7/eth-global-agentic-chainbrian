@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+
+// ! This script is now deprecated, the tunneling happens in the root script
+const { config } = require("dotenv");
+const { join } = require("path");
+const concurrently = require("concurrently");
+
+config({
+  path: join(__dirname, "..", ".env"),
+});
+
+const { result } = concurrently(
+  [
+    {
+      command: "pnpm run next-dev",
+      name: "next",
+      prefixColor: "green",
+      env: {
+        NEXT_PROXY_LOGGING: 1,
+      },
+    },
+    {
+      command: "pnpm run www-tunnel",
+      name: "tunnel",
+      prefixColor: "green",
+      env: {
+        TUNNELMOLE_QUIET_MODE: 1,
+      },
+    },
+  ],
+  {
+    raw: true,
+  }
+);
+
+result.catch((err) => {
+  console.error(err);
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  process.exit(0);
+});

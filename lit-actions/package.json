@@ -1,0 +1,32 @@
+{
+  "name": "lit-actions",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "predev": "node bin/validate-env",
+    "dev": "pnpm run build && pnpm start",
+    "build": "node esbuild.js && tsc",
+    "start": "node dist/index.js",
+    "lint": "prettier --write . && eslint . --fix --config .eslintrc.json",
+    "watch": "node bin/build-dev"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "dotenv": "^16.4.5",
+    "esbuild": "^0.24.2",
+    "ethers": "^5.7.2",
+    "glob": "^11.0.0",
+    "pinata-web3": "^0.5.4",
+    "prettier": "^3.4.2",
+    "tsc-watch": "^6.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/parser": "^7.3.1",
+    "eslint": "^8",
+    "typescript": "^5"
+  }
+}

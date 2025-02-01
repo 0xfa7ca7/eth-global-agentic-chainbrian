@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+
+import { spawn } from "child_process";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
+import fs from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+console.log("Starting dev build...");
+
+function startBuild() {
+  spawn("pnpm", ["run", "dev"], { stdio: "inherit" });
+}
+
+fs.watch(resolve(__dirname, "../src/actions"), () => {
+  console.log("Actions src folder changed, restarting build...");
+  startBuild();
+});
+
+startBuild();

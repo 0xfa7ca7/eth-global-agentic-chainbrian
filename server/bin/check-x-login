@@ -1,0 +1,93 @@
+#!/usr/bin/env node
+
+import fs from "fs";
+import path from "path";
+import { Scraper } from "agent-twitter-client";
+import { config } from "dotenv";
+
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+config({
+  path: path.join(__dirname, "..", "..", ".env"),
+});
+
+async function loginTwitter() {
+  console.log("Loading Twitter environment variables...");
+  const scraper = new Scraper();
+  console.log("Logging in to Twitter...");
+  let errMessage = "";
+  if (!process.env.TWITTER_USERNAME) {
+    errMessage += "TWITTER_USERNAME is not set ";
+  }
+  if (!process.env.TWITTER_PASSWORD) {
+    errMessage += "TWITTER_PASSWORD is not set ";
+  }
+  if (!process.env.TWITTER_API_KEY) {
+    errMessage += "TWITTER_API_KEY is not set ";
+  }
+  if (!process.env.TWITTER_API_SECRET_KEY) {
+    errMessage += "TWITTER_API_SECRET_KEY is not set ";
+  }
+  if (!process.env.TWITTER_ACCESS_TOKEN) {
+    errMessage += "TWITTER_ACCESS_TOKEN is not set ";
+  }
+  if (!process.env.TWITTER_ACCESS_TOKEN_SECRET) {
+    errMessage += "TWITTER_ACCESS_TOKEN_SECRET is not set ";
+  }
+  if (errMessage) {
+    console.error(`Missing twitter configuraiton: ${errMessage}`);
+    throw new Error(errMessage);
+  }
+  await scraper.login(
+    process.env.TWITTER_USERNAME,
+    process.env.TWITTER_PASSWORD,
+    undefined,
+    undefined,
+    process.env.TWITTER_API_KEY,
+    process.env.TWITTER_API_SECRET_KEY,
+    process.env.TWITTER_ACCESS_TOKEN,
+    process.env.TWITTER_ACCESS_TOKEN_SECRET
+  );
+  const cookies = await scraper.getCookies();
+
+  console.log(
+    "Login success. Cookies retrieved from Twitter:",
+    JSON.stringify(cookies)
+  );
+  return cookies;
+}
+
+async function main() {
+  // Once new .env is saved, check if twitter-cookies.json exists, else create it
+  const twitterCookiesPath = path.join(
+    __dirname,
+    "..",
+    "..",
+    "twitter-cookies.json"
+  );
+  if (!fs.existsSync(twitterCookiesPath)) {
+    console.log(
+      "[INFO] twitter-cookies.json does not exist, creating a new one..."
+    );
+    try {
+      const cookies = await loginTwitter();
+      // store the cookies in twitter-cookies.json in the cookies property
+      fs.writeFileSync(
+        twitterCookiesPath,
+        JSON.stringify({ cookies: cookies.map((cookie) => cookie.toString()) })
+      );
+      console.log("[INFO] Twitter cookies saved to:", twitterCookiesPath);
+    } catch (err) {
+      console.log("[WARN] Unable to connect to twitter ", err);
+    }
+  } else {
+    console.log(
+      "[INFO] twitter-cookies.json already exists, delete the file if you want to create a new one"
+    );
+  }
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

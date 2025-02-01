@@ -1,0 +1,77 @@
+name: Generate Changelog
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  generate-changelog:
+    runs-on: ubuntu-latest
+    container:
+      image: githubchangeloggenerator/github-changelog-generator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Generate History
+        run: |
+          # Function to generate changelog with common options
+          generate_changelog() {
+            local since_tag=$1
+            local future_release=$2
+            local since_tag_arg=""
+            
+            if [ ! -z "$since_tag" ]; then
+              since_tag_arg="--since-tag $since_tag"
+            fi
+
+            github_changelog_generator \
+              -u ${{ github.repository_owner }} \
+              -p ${{ github.event.repository.name }} \
+              --token ${{ secrets.GITHUB_TOKEN }} \
+              $since_tag_arg \
+              --future-release $future_release \
+              --enhancement-label "🚀 Features" \
+              --bugs-label "🐛 Bug Fixes" \
+              --issues-label "📋 Closed Issues" \
+              --pr-label "📦 Pull Requests" \
+              --breaking-label "💥 Breaking Changes" \
+              --security-label "🔒 Security" \
+              --configure-sections '{"documentation":{"prefix":"📝 Documentation","labels":["documentation"]},"tests":{"prefix":"🧪 Tests","labels":["test"]}}' \
+              --exclude-labels duplicate,question,invalid,wontfix \
+              --add-sections '{"performance":{"prefix":"⚡️ Performance","labels":["performance"]},"dependencies":{"prefix":"📦 Dependencies","labels":["dependencies"]}}' \
+              --header-label "# 📝 Changelog" \
+              --breaking-labels breaking,breaking-change \
+              --enhancement-labels feature,enhancement \
+              --bug-labels bug,fix \
+              --exclude-tags-regex "^v0\\..*$" \
+              --output HISTORY.md
+          }
+
+          # Check if HISTORY.md exists and is not empty
+          if [ ! -f HISTORY.md ] || [ ! -s HISTORY.md ]; then
+            echo "Generating full changelog history..."
+            generate_changelog "" ${{ github.event.release.tag_name }}
+          else
+            echo "Updating existing changelog..."
+            # Get previous tag
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            
+            if [ -z "$PREV_TAG" ]; then
+              # First release
+              generate_changelog "" ${{ github.event.release.tag_name }}
+            else
+              # Subsequent releases
+              generate_changelog "$PREV_TAG" ${{ github.event.release.tag_name }}
+            fi
+          fi
+
+      - name: Commit and Push Changelog
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add HISTORY.md
+          git commit -m "docs: update changelog for ${{ github.event.release.tag_name }}"
+          git push origin HEAD:main

@@ -1,0 +1,41 @@
+{
+  "name": "ai-agent-starter-kit",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "gen-seed": "node ./server/scripts/seed.mjs",
+    "deploy-model": "node ./server/scripts/deploy-model.mjs",
+    "login-x": "pnpm --filter server run login-x",
+    "preinstall": "npx only-allow pnpm",
+    "predev": "pnpm --filter client run predev && pnpm --filter server run predev && pnpm --filter lit-actions run predev",
+    "dev": "node scripts/dev",
+    "tunnel": "node scripts/tunnel",
+    "dev:client": "pnpm --filter client run dev",
+    "dev:server": "pnpm --filter server run dev",
+    "dev:lit-actions": "pnpm --filter lit-actions run watch",
+    "build": "pnpm -r run build",
+    "start": "pnpm -r run start",
+    "lint": "pnpm -r run lint",
+    "clean": "rimraf node_modules **/node_modules **/dist **/.next **/next-env.d.ts",
+    "reset": "rimraf node_modules **/node_modules **/dist **/.next **/next-env.d.ts pnpm-lock.yaml eliza.sqlite twitter-cookies.json",
+    "letsgo": "pnpm i && pnpm run dev",
+    "version": "auto-changelog -p && git add CHANGELOG.md",
+    "release": "standard-version",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@ngrok/ngrok": "^1.4.1",
+    "auto-changelog": "^2.4.0",
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.4.5",
+    "husky": "^9.1.7",
+    "rimraf": "^5.0.5",
+    "standard-version": "^9.5.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "author": "Abridged, Inc.",
+  "license": "MIT",
+  "packageManager": "pnpm@9.14.1"
+}

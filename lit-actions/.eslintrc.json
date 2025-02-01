@@ -1,0 +1,27 @@
+{
+  "root": true,
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint"],
+  "rules": {
+    "no-unused-vars": "warn",
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      { "argsIgnorePattern": "^_" }
+    ],
+    "@typescript-eslint/triple-slash-reference": "off"
+  },
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "shims/",
+    "actions/",
+    "src/global.d.ts"
+  ],
+  "env": {
+    "node": true,
+    "es6": true,
+    "browser": true,
+    "es2020": true
+  }
+}
