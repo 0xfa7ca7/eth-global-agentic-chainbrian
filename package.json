@@ -8,7 +8,7 @@
     "login-x": "pnpm --filter server run login-x",
     "preinstall": "npx only-allow pnpm",
     "predev": "pnpm --filter client run predev && pnpm --filter server run predev && pnpm --filter lit-actions run predev",
-    "dev": "node scripts/dev",
+    "dev": "zellij --layout ./zellij-layout.kdl",
     "tunnel": "node scripts/tunnel",
     "dev:client": "pnpm --filter client run dev",
     "dev:server": "pnpm --filter server run dev",

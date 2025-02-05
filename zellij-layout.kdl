@@ -1,0 +1,18 @@
+layout {
+  pane {
+    command "pnpm"
+    args "dev:server"
+  }
+  pane {
+    command "pnpm"
+    args "dev:client"
+  }
+  pane {
+    command "pnpm"
+    args "dev:lit-actions"
+  }
+  pane {
+    command "pnpm"
+    args "tunnel"
+  }
+}
