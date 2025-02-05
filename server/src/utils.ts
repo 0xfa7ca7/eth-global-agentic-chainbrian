@@ -1,8 +1,11 @@
+import { ElizaService } from "./services/eliza.service.js";
+import { Bot } from "grammy";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { resolve } from "path";
 const __dirname = new URL(".", import.meta.url).pathname;
 import { config } from "dotenv";
+import { AgentRuntime } from "@ai16z/eliza";
 config();
 
 export type AnyType = any;
@@ -80,4 +83,18 @@ export const getCardHTML = (botUsername: string, claimURL: string) => {
 </body>
 
 </html>`;
+};
+
+export const getElizaRuntime: () => AgentRuntime = () => {
+  if (!process.env.TELEGRAM_BOT_TOKEN) {
+    throw new Error("TELEGRAM_BOT_TOKEN is required to get eliza runtime");
+  }
+
+  const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
+  const elizaService = ElizaService.getInstance(bot);
+  if (!elizaService.getRuntime()) {
+    throw new Error("Failed to get Eliza runtime");
+  }
+
+  return elizaService.getRuntime();
 };

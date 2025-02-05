@@ -1,4 +1,4 @@
-import { AnyType, getCollablandApiUrl } from "../../utils.js";
+import { AnyType } from "../../utils.js";
 import { Action, ActionExample, Validator, Handler } from "@ai16z/eliza";
 import axios, { AxiosInstance } from "axios";
 
@@ -21,7 +21,7 @@ export abstract class CollabLandBaseAction implements Action {
     this.validate = validate;
 
     this.client = axios.create({
-      baseURL: getCollablandApiUrl(),
+      baseURL: process.env.COLLABLAND_API_URL,
       headers: {
         "X-API-KEY": process.env.COLLABLAND_API_KEY || "",
         "X-TG-BOT-TOKEN": process.env.TELEGRAM_BOT_TOKEN || "",

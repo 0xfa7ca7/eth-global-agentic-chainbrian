@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ConnectWallet,
   Wallet as OnchainKitWallet,
@@ -12,10 +14,29 @@ import {
   Name,
   Identity,
   EthBalance,
-  Badge,
 } from "@coinbase/onchainkit/identity";
 
+import { useAccount } from "wagmi";
+import { useEffect } from "react";
+
 export default function Wallet() {
+  const account = useAccount();
+
+  useEffect(() => {
+    // Save the wallet with route wallet/save
+    console.log("Saving wallet...");
+    fetch("/api/wallet/save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        address: account.address,
+      }),
+    })
+      .then((res) => console.log(res))
+      .catch((error) => console.error(error));
+  }, [account]);
   return (
     <OnchainKitWallet>
       <ConnectWallet>

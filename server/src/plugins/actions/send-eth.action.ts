@@ -1,5 +1,4 @@
 /* eslint-disable no-unused-vars */
-
 import {
   ActionExample,
   composeContext,
@@ -79,7 +78,6 @@ export class SendETHAction extends CollabLandBaseAction {
       _callback
     ): Promise<boolean> => {
       try {
-        console.log("[SendETHAction] message", _message);
         console.log("[SendETHAction] options", _options);
         console.log("[SendETHAction] state", _state);
 
@@ -103,13 +101,13 @@ export class SendETHAction extends CollabLandBaseAction {
             break;
           }
         }
+
         // Get the chain Id
         if (chain == null) {
-          _callback?.({
-            text: "I cannot proceed because I don't know the chain you're looking for. I support Ethereum, Linea, Base, and others.",
-          });
-          return false;
+          // Set the default to Ethereum
+          chain = "ethereum";
         }
+
         console.log("[SendETHAction] chain found in memories", chain);
 
         const chainId = chainMap[chain as keyof typeof chainMap];
@@ -125,7 +123,6 @@ export class SendETHAction extends CollabLandBaseAction {
         let account: BotAccountMemory | null = null;
         for (const memory of onChainMemories) {
           if (
-            memory.content.smartAccount &&
             memory.content.type === "evm" && // Has to be EVM for sending ETH
             memory.content.chainId == chainId
           ) {

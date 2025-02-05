@@ -2,13 +2,13 @@
 
 import type { ReactNode } from "react";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
-import { base } from "wagmi/chains"; // add baseSepolia for testing
+import { sepolia } from "wagmi/chains"; // add baseSepolia for testing
 
 export function Providers(props: { children: ReactNode }) {
   return (
     <OnchainKitProvider
       apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
-      chain={base} // add baseSepolia for testing -- todo add more chains
+      chain={sepolia} // add baseSepolia for testing -- todo add more chains
       config={{
         appearance: {
           name: "ChainBrian", //  header

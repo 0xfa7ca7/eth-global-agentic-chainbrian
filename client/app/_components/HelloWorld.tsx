@@ -26,7 +26,7 @@ export default function HelloWorld() {
   useEffect(() => {
     if (isConfigured) {
       axios
-        .get("/api/hello/collabland")
+        .get("/api/wallet/collabland")
         .then((res) => setData(res.data))
         .catch((err) => setError(err.message));
     }

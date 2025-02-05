@@ -1,7 +1,7 @@
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import helloRouter from "./routes/hello.js";
+import walletRouter from "./routes/wallet.js";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -39,7 +39,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Mount hello world test route
-app.use("/hello", helloRouter);
+app.use("/wallet", walletRouter);
 
 // Initialize Telegram bot service
 const telegramService = TelegramService.getInstance();
