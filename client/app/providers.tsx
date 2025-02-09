@@ -3,8 +3,12 @@
 import type { ReactNode } from "react";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
 import { sepolia } from "wagmi/chains"; // add baseSepolia for testing
+import { usePathname } from 'next/navigation'
+import NavigationBar from "./_components/NavigationBar";
 
 export function Providers(props: { children: ReactNode }) {
+  const pathname = usePathname()
+
   return (
     <OnchainKitProvider
       apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
@@ -23,7 +27,14 @@ export function Providers(props: { children: ReactNode }) {
         },
       }}
     >
-      {props.children}
+      {pathname !== "/login" ? 
+        <div className="flex justify-start">
+          <NavigationBar />
+          {props.children}
+        </div>
+       : 
+        props.children
+      }
     </OnchainKitProvider>
   );
 }
