@@ -62,7 +62,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ ngrokUrl }) => {
     };
 
     ws.current.onerror = (error) => {
-      console.error("WebSocket error:", error);
+      console.log("WebSocket error:", error);
       setIsConnected(false);
     };
   };
