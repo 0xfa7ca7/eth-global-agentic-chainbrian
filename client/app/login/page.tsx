@@ -20,7 +20,7 @@ export default function Login() {
               <p className="text-6xl pr-4">ChainBrian</p>
               <Brain size={64}/>
             </CardTitle>
-            <CardDescription>Your favourite DeFi Bot</CardDescription>
+            <CardDescription>ChainBrian is a Decentralized AI Agent</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center pt-5">
             <Wallet />
