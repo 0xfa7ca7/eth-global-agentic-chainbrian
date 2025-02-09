@@ -522,19 +522,76 @@ export class MessageManager {
     }
   }
 }
+export class ClientMessageManager {
+  private runtime: IAgentRuntime;
 
+  constructor(runtime: IAgentRuntime) {
+    this.runtime = runtime;
+  }
+
+  private splitMessage(text: string): string[] {
+    const MAX_CHUNK = 4096;
+    const chunks: string[] = [];
+    for (let i = 0; i < text.length; i += MAX_CHUNK) {
+      chunks.push(text.slice(i, i + MAX_CHUNK));
+    }
+    return chunks;
+  }
+
+  public async handleMessage(message: string): Promise<string[]> {
+    try {
+      // validate msg
+      if (!message?.trim()) {
+        throw new Error("Received empty message content");
+      }
+
+      const userId = stringToUuid("client-user") as UUID;
+      const roomId = stringToUuid("client-chat") as UUID;
+
+      // generate memmory
+      const memory = await this.runtime.messageManager.addEmbeddingToMemory({
+        id: stringToUuid(`msg-${Date.now()}`) as UUID,
+        agentId: this.runtime.agentId,
+        userId,
+        roomId,
+        content: {
+          text: message,
+          source: "direct-client",
+        },
+        createdAt: Date.now(),
+      });
+
+      await this.runtime.messageManager.createMemory(memory, true);
+
+      const state = await this.runtime.composeState(memory);
+      const context = composeContext({
+        state,
+        template: telegramMessageHandlerTemplate,
+      });
+
+      const response = await generateMessageResponse({
+        runtime: this.runtime,
+        context,
+        modelClass: ModelClass.MEDIUM,
+      });
+
+      return response?.text ? this.splitMessage(response.text) : [];
+    } catch (error) {
+      console.error("Error handling client message:", error);
+      return ["Sorry, I encountered an error processing your message."];
+    }
+  }
+}
 export class ElizaService extends BaseService {
   private static instance: ElizaService;
   private runtime: AgentRuntime;
-  public messageManager: MessageManager;
-  private bot: Bot<Context>;
+  public messageManager: MessageManager | ClientMessageManager;
+  private bot?: Bot<Context>;
 
-  private constructor(bot: Bot<Context>) {
+  private constructor(bot?: Bot<Context>) {
     super();
 
-    // Load character from json file
     let character: Character;
-
     if (!process.env.ELIZA_CHARACTER_PATH) {
       elizaLogger.info(
         "No ELIZA_CHARACTER_PATH defined, using default character"
@@ -542,18 +599,15 @@ export class ElizaService extends BaseService {
       character = defaultCharacter;
     } else {
       try {
-        // Use absolute path from project root
         const fullPath = resolve(
           __dirname,
           "../../..",
           process.env.ELIZA_CHARACTER_PATH
         );
         elizaLogger.info(`Loading character from: ${fullPath}`);
-
         if (!existsSync(fullPath)) {
           throw new Error(`Character file not found at ${fullPath}`);
         }
-
         const fileContent = readFileSync(fullPath, "utf-8");
         character = JSON.parse(fileContent);
         elizaLogger.info(
@@ -561,57 +615,47 @@ export class ElizaService extends BaseService {
           character.name
         );
       } catch (error) {
-        console.error(
-          `Failed to load character from ${process.env.ELIZA_CHARACTER_PATH}:`,
-          error
-        );
+        console.error(`Failed to load character:`, error);
         elizaLogger.info("Falling back to default character");
         character = defaultCharacter;
       }
     }
 
-    // character.modelProvider = ModelProviderName.GAIANET // FIX: Commented out since model provider is best set from character.json
-
     const sqlitePath = path.join(__dirname, "..", "..", "..", "eliza.sqlite");
     elizaLogger.info("Using SQLite database at:", sqlitePath);
-    // Initialize SQLite adapter
+
     const db = new SqliteDatabaseAdapter(new Database(sqlitePath));
-
-    db.init()
-      .then(() => {
-        elizaLogger.info("Database initialized.");
-      })
-      .catch((error) => {
-        console.error("Failed to initialize database:", error);
-        throw error;
-      });
-
-    try {
-      this.runtime = new AgentRuntime({
-        databaseAdapter: db,
-        token: process.env.OPENAI_API_KEY || "",
-        modelProvider: character.modelProvider || ModelProviderName.OPENAI,
-        character,
-        conversationLength: 4096,
-        plugins: [bootstrapPlugin, collablandPlugin, gateDataPlugin],
-        cacheManager: new CacheManager(new MemoryCacheAdapter()),
-        logging: true,
-      });
-      // Create memory manager
-      const onChainMemory = new MemoryManager({
-        tableName: "onchain",
-        runtime: this.runtime,
-      });
-      this.runtime.registerMemoryManager(onChainMemory);
-      this.messageManager = new MessageManager(bot, this.runtime);
-      this.bot = bot;
-    } catch (error) {
-      console.error("Failed to initialize Eliza runtime:", error);
+    db.init().catch((error) => {
+      console.error("Failed to initialize DB:", error);
       throw error;
+    });
+
+    this.runtime = new AgentRuntime({
+      databaseAdapter: db,
+      token: process.env.OPENAI_API_KEY || "",
+      modelProvider: character.modelProvider || ModelProviderName.OPENAI,
+      character,
+      conversationLength: 4096,
+      plugins: [bootstrapPlugin, collablandPlugin, gateDataPlugin],
+      cacheManager: new CacheManager(new MemoryCacheAdapter()),
+      logging: true,
+    });
+
+    const onChainMemory = new MemoryManager({
+      tableName: "onchain",
+      runtime: this.runtime,
+    });
+    this.runtime.registerMemoryManager(onChainMemory);
+
+    if (bot) {
+      this.bot = bot;
+      this.messageManager = new MessageManager(bot, this.runtime);
+    } else {
+      this.messageManager = new ClientMessageManager(this.runtime);
     }
   }
 
-  public static getInstance(bot: Bot<Context>): ElizaService {
+  public static getInstance(bot?: Bot<Context>): ElizaService {
     if (!ElizaService.instance) {
       ElizaService.instance = new ElizaService(bot);
     }
@@ -620,22 +664,34 @@ export class ElizaService extends BaseService {
 
   public async start(): Promise<void> {
     try {
-      // make sure this gets initialized before anything tries to use it in the plugin.
-      // not sure where this should actually be hooked up
       await StorageService.getInstance().start();
     } catch (err) {
       elizaLogger.warn("[eliza] gated storage service is unavailable");
     }
     try {
-      //register AI based command handlers here
-      this.bot.command("eliza", (ctx) =>
-        this.messageManager.handleMessage(ctx)
-      );
-      elizaLogger.info("Eliza service started successfully");
+      if (this.bot) {
+        this.bot.command("eliza", (ctx) => {
+          if (this.messageManager instanceof MessageManager) {
+            this.messageManager.handleMessage(ctx);
+          }
+        });
+        elizaLogger.info("Eliza service started successfully");
+      } else {
+        elizaLogger.info(
+          "No Telegram bot instance. Skipping bot-based commands."
+        );
+      }
     } catch (error) {
       console.error("Failed to start Eliza service:", error);
       throw error;
     }
+  }
+
+  public async handleClientMessage(message: string): Promise<string[]> {
+    if (this.messageManager instanceof ClientMessageManager) {
+      return await this.messageManager.handleMessage(message);
+    }
+    throw new Error("Client message handler not initialized");
   }
 
   public getRuntime(): AgentRuntime {

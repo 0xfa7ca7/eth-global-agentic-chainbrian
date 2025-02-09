@@ -21,8 +21,8 @@
     "@grammyjs/conversations": "^1.2.0",
     "@ngrok/ngrok": "^1.4.1",
     "@solana/web3.js": "^1.98.0",
-    "agent-twitter-client": "^0.0.18",
     "@useorbis/db-sdk": "0.0.60-alpha",
+    "agent-twitter-client": "^0.0.18",
     "axios": "^1.7.7",
     "better-sqlite3": "^11.6.0",
     "cookie-parser": "^1.4.7",
@@ -35,7 +35,9 @@
     "jsonc-parser": "^3.3.1",
     "node-cache": "^5.1.2",
     "prettier": "^3.4.2",
-    "tsc-watch": "^6.2.1"
+    "tsc-watch": "^6.2.1",
+    "uuid": "^11.0.5",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@typechain/ethers-v6": "^0.5.1",
@@ -48,6 +50,7 @@
     "@types/node": "^20.17.6",
     "@types/node-cache": "^4.2.5",
     "@types/node-fetch": "^2.6.11",
+    "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
     "eslint": "^8",

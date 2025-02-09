@@ -7,6 +7,8 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { NgrokService } from "./services/ngrok.service.js";
 import { TelegramService } from "./services/telegram.service.js";
+import chatRouter from "./routes/chat.js";
+import { ChatService } from "./services/chat.service.js";
 import { IService } from "./services/base.service.js";
 import twitterRouter from "./routes/twitter.js";
 import discordRouter from "./routes/discord.js";
@@ -14,6 +16,7 @@ import cookieParser from "cookie-parser";
 import githubRouter from "./routes/github.js";
 import { AnyType } from "./utils.js";
 import { isHttpError } from "http-errors";
+import http from "http";
 
 // Convert ESM module URL to filesystem path
 const __filename = fileURLToPath(import.meta.url);
@@ -29,6 +32,7 @@ dotenv.config({
 
 // Initialize Express app
 const app = express();
+const server = http.createServer(app);
 const port = process.env.PORT || 3001;
 
 // Configure CORS with ALL allowed origins
@@ -40,6 +44,10 @@ app.use(cookieParser());
 
 // Mount hello world test route
 app.use("/wallet", walletRouter);
+app.use("/chat", chatRouter);
+
+// Initialize WebSocket Chat Service
+const chatService = ChatService.getInstance();
 
 // Initialize Telegram bot service
 const telegramService = TelegramService.getInstance();
@@ -80,7 +88,7 @@ app.use((_err: AnyType, _req: Request, _res: Response, _next: NextFunction) => {
 });
 
 // Start server and initialize services
-app.listen(port, async () => {
+server.listen(port, async () => {
   try {
     console.log(`Server running on PORT: ${port}`);
     console.log("Server Environment:", process.env.NODE_ENV);
@@ -95,11 +103,16 @@ app.listen(port, async () => {
 
     // Initialize Telegram bot and set webhook
     await telegramService.start();
-    await telegramService.setWebhook(ngrokUrl);
+    await telegramService.setWebhook(`${ngrokUrl}/telegram/webhook`);
     services.push(telegramService);
 
     const botInfo = await telegramService.getBotInfo();
     console.log("Telegram Bot URL:", `https://t.me/${botInfo.username}`);
+
+    // Set ChatService Webhook
+    console.log("Setting up ChatService webhook...");
+    await chatService.start();
+    console.log(`Chat Webhook URL: ${ngrokUrl}/chat/webhook`);
   } catch (e) {
     console.error("Failed to start server:", e);
     process.exit(1);

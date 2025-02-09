@@ -6,6 +6,7 @@ import TelegramUser from "../_components/TelegramUser";
 import { TwitterLogin } from "../_components/TwitterLogin";
 import { DiscordLogin } from "../_components/DiscordLogin";
 import { GithubLogin } from "../_components/GithubLogin";
+import ChatBox from "../_components/ChatBox";
 import Wallet from "../_components/Wallet";
 
 export default function Home(): ReactElement {
@@ -15,7 +16,7 @@ export default function Home(): ReactElement {
         <div className="flex flex-col items-center w-full space-y-6 p-4">
           <Wallet />
         </div>
-        <HelloWorld />
+        <ChatBox />
         <TelegramUser />
         <TwitterLogin />
         <DiscordLogin />
