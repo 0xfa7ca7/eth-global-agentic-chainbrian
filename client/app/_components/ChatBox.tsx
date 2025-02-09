@@ -29,7 +29,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ ngrokUrl }) => {
         if (data.type === "response") {
           setMessages((prevMessages) => [
             ...prevMessages,
-            `Eliza: ${data.content}`,
+            `Brian: ${data.content}`,
           ]);
           setIsWaitingForResponse(false);
         } else if (data.type === "error") {
@@ -62,7 +62,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ ngrokUrl }) => {
     };
 
     ws.current.onerror = (error) => {
-      console.log("WebSocket error:", error);
+      console.error("WebSocket error:", error);
       setIsConnected(false);
     };
   };
@@ -106,26 +106,42 @@ const ChatBox: React.FC<ChatBoxProps> = ({ ngrokUrl }) => {
           </div>
         )}
       </div>
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyUp={(e) => e.key === "Enter" && sendMessage("eliza")}
-        className="w-full p-2 border border-gray-300 rounded mb-2"
-        placeholder="Type a message..."
-      />
-      <button
-        onClick={() => sendMessage("eliza")}
-        className="w-full bg-blue-500 text-white p-2 rounded mb-2"
-      >
-        Send to Eliza
-      </button>
-      <button
-        onClick={() => sendMessage("lit")}
-        className="w-full bg-blue-500 text-white p-2 rounded"
-      >
-        Send Lit Action
-      </button>
+      <div className="flex gap-2 mb-2">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyUp={(e) => e.key === "Enter" && sendMessage("eliza")}
+          className="flex-1 p-2 border border-gray-300 rounded"
+          placeholder="Type a message..."
+        />
+        <button
+          onClick={() => sendMessage("eliza")}
+          className="bg-blue-500 text-white p-2 rounded"
+        >
+          Send
+        </button>
+      </div>
+      {/* <div className="flex gap-2">
+        <button
+          onClick={() => sendMessage("lit1")}
+          className="flex-1 bg-green-500 text-white p-2 rounded"
+        >
+          Lit Action 1
+        </button>
+        <button
+          onClick={() => sendMessage("lit2")}
+          className="flex-1 bg-green-500 text-white p-2 rounded"
+        >
+          Lit Action 2
+        </button>
+        <button
+          onClick={() => sendMessage("lit3")}
+          className="flex-1 bg-green-500 text-white p-2 rounded"
+        >
+          Lit Action 3
+        </button>
+      </div> */}
     </div>
   );
 };
