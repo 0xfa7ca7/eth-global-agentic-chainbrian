@@ -18,6 +18,7 @@ import {
   BotAccountMemory,
   ExecuteUserOpResponse,
   UserOperationReceipt,
+  WalletResponse,
 } from "../types.js";
 
 // User: Hi
@@ -88,6 +89,16 @@ export class SendETHAction extends CollabLandBaseAction {
           .join("\n");
         console.log("[SendETHAction] availableChains", availableChains);
         let chain: string | null = null;
+        const wallet =
+          await _runtime.cacheManager.get<WalletResponse>("wallet");
+
+        if (!wallet) {
+          _callback?.({
+            text: "Please connect your wallet first.",
+          });
+          return false;
+        }
+
         const onChainMemoryManager = _runtime.getMemoryManager("onchain")!;
         // this is newest to oldest
         const onChainMemories = await onChainMemoryManager.getMemories({
@@ -118,15 +129,32 @@ export class SendETHAction extends CollabLandBaseAction {
           return false;
         }
 
+        if (!wallet) {
+          _callback?.({
+            text: "I cannot proceed because I can't determine my account. Can you help me with which chain you want me to send ETH to?",
+            action: "GET_SMART_ACCOUNT",
+          });
+          return false;
+        }
+
+        if (String(wallet.chainId) !== chainId) {
+          _callback?.({
+            text: "I cannot proceed because I can't determine my account. Can you help me with which chain you want me to send ETH to?",
+            action: "GET_SMART_ACCOUNT",
+          });
+        }
+
         console.log("[SendETHAction] chainId", chainId);
 
         let account: BotAccountMemory | null = null;
         for (const memory of onChainMemories) {
           if (
+            memory.content.smartAccount &&
             memory.content.type === "evm" && // Has to be EVM for sending ETH
             memory.content.chainId == chainId
           ) {
             account = memory.content as unknown as BotAccountMemory;
+            account.signerAccount = account.signerAccount || wallet.address;
             console.log("[SendETHAction] account found", account);
             break;
           }
@@ -175,11 +203,7 @@ export class SendETHAction extends CollabLandBaseAction {
           console.log("[SendETHAction] _canFund", _canFund);
           extractedFundData.canFund = _canFund;
         }
-        if (
-          !extractedFundData.canFund ||
-          !extractedFundData.amount ||
-          !extractedFundData.account
-        ) {
+        if (!extractedFundData.canFund || !extractedFundData.amount) {
           _callback?.({
             text: "I cannot proceed with the request, I didn't find the necessary information to send ETH, or I lack enough ETH to send.",
           });
@@ -195,7 +219,7 @@ export class SendETHAction extends CollabLandBaseAction {
           content: {
             text: "",
             chain: chain,
-            account: extractedFundData.account,
+            account: wallet.address,
             amount: extractedFundData.amount,
             canFund: extractedFundData.canFund,
           },
@@ -210,7 +234,7 @@ export class SendETHAction extends CollabLandBaseAction {
 
         console.log("Hitting Collab.Land APIs to submit user operation...");
         const payload = {
-          target: extractedFundData.account,
+          target: wallet.address,
           value:
             "0x" + ethers.parseEther(extractedFundData.amount).toString(16),
           calldata: "",
@@ -240,7 +264,7 @@ export class SendETHAction extends CollabLandBaseAction {
           content: {
             text: "",
             chain: chain,
-            account: extractedFundData.account,
+            account: wallet.address,
             amount: extractedFundData.amount,
             canFund: extractedFundData.canFund,
             userOpHash: _resData.userOperationHash,
@@ -280,7 +304,7 @@ export class SendETHAction extends CollabLandBaseAction {
             content: {
               text: "",
               chain: chain,
-              account: extractedFundData.account,
+              account: wallet.address,
               amount: extractedFundData.amount,
               canFund: extractedFundData.canFund,
               userOpHash: _resData.userOperationHash,
@@ -291,7 +315,7 @@ export class SendETHAction extends CollabLandBaseAction {
           true
         );
         _callback?.({
-          text: `Your request to send ${extractedFundData.amount} ETH to ${extractedFundData.account} has been sent from my account ${account.smartAccount} on ${chain}.\nStatus: Executed\nUser Operation Hash: ${_userOpReceiptData.userOpHash}\nTransaction Hash: ${_userOpReceiptData.receipt?.transactionHash}`,
+          text: `Your request to send ${extractedFundData.amount} ETH to ${wallet.address} has been sent from my account ${account.smartAccount} on ${chain}.\nStatus: Executed\nUser Operation Hash: ${_userOpReceiptData.userOpHash}\nTransaction Hash: ${_userOpReceiptData.receipt?.transactionHash}`,
         });
         return true;
       } catch (error) {

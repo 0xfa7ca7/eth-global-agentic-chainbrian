@@ -2,7 +2,7 @@ import { AnyType } from "../../utils.js";
 import { Memory, Provider, IAgentRuntime, State } from "@ai16z/eliza";
 import { ethers } from "ethers";
 import { chainMap } from "../../utils.js";
-import { BotAccountMemory } from "../types.js";
+import { BotAccountMemory, WalletResponse } from "../types.js";
 
 export class CollabLandWalletBalanceProvider implements Provider {
   async get(
@@ -17,28 +17,34 @@ export class CollabLandWalletBalanceProvider implements Provider {
       roomId: _message.roomId,
       unique: false,
     });
+
     console.log(
       "[CollabLandWalletBalanceProvider] onChainMemories",
       onChainMemories
     );
+
+    const wallet = await _runtime.cacheManager.get<WalletResponse>("wallet");
+
+    if (!wallet) {
+      console.log("[CollabLandWalletBalanceProvider] wallet is null");
+      return;
+    }
+
     for (const memory of onChainMemories) {
       if (memory.content.chain !== undefined) {
         chain = memory.content.chain as string;
         break;
       }
     }
-    // Get the chain Id
-    if (chain == null) {
-      return "";
-    }
     console.log(
       "[CollabLandWalletBalanceProvider] chain found in memories",
       chain
     );
 
-    const chainId = chainMap[chain as keyof typeof chainMap];
+    let chainId = chainMap[chain as keyof typeof chainMap];
     if (!chainId) {
-      return "";
+      console.log("[CollabLandWalletBalanceProvider] chainId is null");
+      chainId = String(wallet.chainId);
     }
 
     let account: BotAccountMemory | null = null;
@@ -54,12 +60,21 @@ export class CollabLandWalletBalanceProvider implements Provider {
     }
 
     if (!account?.smartAccount) {
-      return "";
+      console.log("[CollabLandWalletBalanceProvider] account is null");
+      // Fetch account from wallet
+      account = {
+        smartAccount: wallet.address,
+        signerAccount: wallet.address,
+        chainId: wallet.chainId,
+        type: "evm",
+      }
     }
+
     console.log(
       "[CollabLandWalletBalanceProvider] account found in memories",
       account
     );
+
     const provider = ethers.getDefaultProvider(account.chainId);
     const balance = await provider.getBalance(account.smartAccount as string);
     const formattedBalance = ethers.formatEther(balance);

@@ -64,6 +64,8 @@ export class GetChainAction extends CollabLandBaseAction {
           })
           .join("\n");
         console.log("[GetChainAction] availableChains", availableChains);
+        const wallet = await _runtime.cacheManager.get("wallet");
+        console.log("[GetChainAction] wallet", wallet);
 
         const extractContext = composeContext({
           state: {

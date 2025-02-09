@@ -6,8 +6,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Collab.Land Starter Kit",
-  description: "Get started with Collab.Land",
+  title: "ChainBrian",
+  description: "ChainBrian is a Decentralized AI Agent",
 };
 
 export default function RootLayout({

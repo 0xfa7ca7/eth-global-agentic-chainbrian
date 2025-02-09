@@ -24,6 +24,7 @@ export default function Wallet() {
 
   useEffect(() => {
     // Save the wallet with route wallet/save
+    if (!account || !account.address) return;
     console.log("Saving wallet...");
     fetch("/api/wallet/save", {
       method: "POST",
@@ -32,6 +33,7 @@ export default function Wallet() {
       },
       body: JSON.stringify({
         address: account.address,
+        chainId: account.chainId,
       }),
     })
       .then((res) => console.log(res))

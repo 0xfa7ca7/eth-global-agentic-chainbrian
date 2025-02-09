@@ -69,3 +69,8 @@ export interface UserOperationReceipt {
   receipt?: TransactionReceipt;
   logs?: Log[];
 }
+
+export interface WalletResponse {
+  chainId: number;
+  address: string;
+}
